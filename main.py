@@ -2,6 +2,7 @@ import torch
 from preprocess import process_poems, start_token
 import pdb
 import tqdm
+import numpy as np
 import argparse
 
 def sequence_collate(batch):
@@ -9,6 +10,15 @@ def sequence_collate(batch):
     # ret = [torch.nn.utils.rnn.pack_sequence(sorted(samples, key = len, reverse = True)) for samples in transposed]
     ret = [torch.nn.utils.rnn.pack_sequence(samples) for samples in transposed]
     return ret
+
+def prob_sample(w_list):
+    samples = []
+    for weights in w_list:
+        t = np.cumsum(weights)
+        s = np.sum(weights)
+        sample = int(np.searchsorted(t, np.random.rand(1)*s))
+        samples.append(sample)
+    return np.array(samples)
 
 def infer(model, final, words, word2int, emb, hidden_size = 256, start = '春'):
     n = 1
@@ -20,10 +30,13 @@ def infer(model, final, words, word2int, emb, hidden_size = 256, start = '春'):
             x, h = x.cuda(), h.cuda()
         x, h = model(x, h)
         # h = torch.rand((1, n, hidden_size))
-        w = torch.argmax(final(x.view(-1, hidden_size)), dim = 1).cpu()
-        x = torch.nn.functional.embedding(w, emb).unsqueeze(0)
+        w = prob_sample(torch.nn.functional.softmax(final(x.view(-1, hidden_size)), dim=-1).data.cpu().numpy())
+        # w = torch.argmax(, dim = 1).cpu()
+        x = torch.nn.functional.embedding(torch.from_numpy(w), emb).unsqueeze(0)
         for j in range(len(w)):
             ret[j].append(words[w[j]])
+            if i % 5 == 3:
+                ret[j].append("，" if i < 18 else "。")
     ret_list = []
     for i in range(n):
         # print("".join(ret[i]))
