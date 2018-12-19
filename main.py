@@ -14,14 +14,14 @@ def sequence_collate(batch):
 def prob_sample(w_list):
     samples = []
     for weights in w_list:
-        t = np.cumsum(weights)
-        s = np.sum(weights)
+        idx = np.argsort(weights)[::-1]
+        t = np.cumsum(weights[idx[:5]])
+        s = np.sum(weights[idx[:5]])
         sample = int(np.searchsorted(t, np.random.rand(1)*s))
-        samples.append(sample)
+        samples.append(idx[sample])
     return np.array(samples)
 
-def infer(model, final, words, word2int, emb, hidden_size = 256, start = '春'):
-    n = 1
+def infer(model, final, words, word2int, emb, hidden_size = 256, start = '春', n = 1):
     h = torch.zeros((1, n, hidden_size))
     x = torch.nn.functional.embedding(torch.full((n,), word2int[start], dtype = torch.long), emb).unsqueeze(0)
     ret = [[start] for i in range(n)]
@@ -78,6 +78,7 @@ def main(epoch = 10, batch_size = 4, hidden_size = 256):
                     "example": infer(model, final, words, word2int, dataset.emb)
                 }
                 data_iter.write(str(post_fix))
+        print("\n".join(infer(model, final, words, word2int, dataset.emb, n = 5)))
 
 
 if __name__ == "__main__":
