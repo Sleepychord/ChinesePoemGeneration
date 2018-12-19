@@ -24,7 +24,9 @@ def process_poems(file_name, embedding_file_name):
                 if len(content) < 5 or len(content) > 79:
                     continue
                 # content = start_token + re.sub('[，。]', '', content) + end_token
-                content = re.sub('[，。]', '', content)
+                # if len(re.split("，|。|？|！", content)[0]) != 5:
+                #     continue
+                content = re.sub('[，。？！]', '', content)
                 poems.append(content)
             except ValueError as e:
                 pass
