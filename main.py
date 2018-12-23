@@ -52,18 +52,23 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
         for j in range(len(w)):
             ret[j].append(words[w[j]])
             if i % 5 == 3:
-                ret[j].append(u"，" if i < 18 else u"。")
+                if sys.version_info.major == 2:
+                    ret[j].append(u"，" if i < 18 else u"。")
+                else:
+                    ret[j].append("，" if i < 18 else "。")
     ret_list = []
     for i in range(n):
-        # print("".join(ret[i]))
-        ret_list.append(u"".join(ret[i]))
+        if sys.version_info.major == 2:
+            ret_list.append(u"".join(ret[i]))
+        else:
+            ret_list.append("".join(ret[i]))
     return ret_list
 
 
 def main(epoch=10, batch_size=4, hidden_size=256):
     dataset, words, word2int = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=sequence_collate)
-    model = torch.nn.RNN(input_size=dataset.emb_dim, hidden_size=hidden_size)
+    model = torch.nn.GRU(input_size=dataset.emb_dim, hidden_size=hidden_size)
     final = torch.nn.Linear(hidden_size, dataset.voc_size, bias=False)
     opt = torch.optim.Adam(list(model.parameters()) + list(final.parameters()))
     if torch.cuda.is_available():
@@ -102,7 +107,10 @@ def main(epoch=10, batch_size=4, hidden_size=256):
         # break
 
         tmp_infer_rst = infer(model, final, words, word2int, dataset.emb, n=5)
-        tmp_infer_rst = u"\n".join(tmp_infer_rst).encode('utf-8')
+        if sys.version_info.major == 2:
+            tmp_infer_rst = u"\n".join(tmp_infer_rst).encode('utf-8')
+        else:
+            tmp_infer_rst = "\n".join(tmp_infer_rst)
         print(tmp_infer_rst)
 
 
