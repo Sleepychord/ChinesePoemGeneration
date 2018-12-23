@@ -8,6 +8,7 @@ import pdb
 import tqdm
 import numpy as np
 import argparse
+import sys
 
 from preprocess import pos2PE
 
@@ -38,10 +39,11 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
     x = torch.nn.functional.embedding(torch.full((n,), word2int[start], dtype=torch.long), emb).unsqueeze(0)
     ret = [[start] for i in range(n)]
     for i in range(19):
-        if torch.cuda.is_available():
-            x, h = x.cuda(), h.cuda()
         # add PE dims
-        x = torch.cat((x, torch.tensor(pos2PE((i % 5) + 1), dtype=torch.float).repeat(1, n, 1)), dim=2)
+        pe = torch.tensor(pos2PE((i % 5) + 1), dtype=torch.float).repeat(1, n, 1)
+        if torch.cuda.is_available():
+            x, h, pe = x.cuda(), h.cuda(), pe.cuda()
+        x = torch.cat((x, pe), dim=2)
         x, h = model(x, h)
         # h = torch.rand((1, n, hidden_size))
         w = prob_sample(torch.nn.functional.softmax(final(x.view(-1, hidden_size)), dim=-1).data.cpu().numpy())
@@ -93,7 +95,10 @@ def main(epoch=10, batch_size=4, hidden_size=256):
                     "loss": loss.item(),
                     "example": infer(model, final, words, word2int, dataset.emb)
                 }
-                data_iter.write(unicode(post_fix))
+                if sys.version_info.major == 2:
+                    data_iter.write(unicode(post_fix))
+                else:
+                    data_iter.write(str(post_fix))
         # break
 
         tmp_infer_rst = infer(model, final, words, word2int, dataset.emb, n=5)
