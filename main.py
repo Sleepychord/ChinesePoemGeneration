@@ -15,8 +15,8 @@ from preprocess import pos2PE
 
 def sequence_collate(batch):
     transposed = zip(*batch)
-    # ret = [torch.nn.utils.rnn.pack_sequence(sorted(samples, key = len, reverse = True)) for samples in transposed]
-    ret = [torch.nn.utils.rnn.pack_sequence(samples) for samples in transposed]
+    ret = [torch.nn.utils.rnn.pack_sequence(sorted(samples, key = len, reverse = True)) for samples in transposed]
+    # ret = [torch.nn.utils.rnn.pack_sequence(samples) for samples in transposed]
     return ret
 
 
@@ -67,7 +67,7 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
 
 def main(epoch=10, batch_size=4, hidden_size=256):
     dataset, words, word2int = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
-    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=sequence_collate)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=sequence_collate)
     model = torch.nn.GRU(input_size=dataset.emb_dim, hidden_size=hidden_size)
     final = torch.nn.Linear(hidden_size, dataset.voc_size, bias=False)
     opt = torch.optim.Adam(list(model.parameters()) + list(final.parameters()))

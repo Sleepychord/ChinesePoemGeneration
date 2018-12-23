@@ -9,7 +9,8 @@ import re
 
 class PoemDataset(Dataset):
     def __init__(self, poems, emb):
-        self.poems = sorted(poems, key=len, reverse=True)
+        # self.poems = sorted(poems, key=len, reverse=True)
+        self.poems = poems
         self.emb = emb
         self.voc_size, self.emb_dim = self.emb.size()
         self.emb_dim += self.poems[0].size()[1] - 1
