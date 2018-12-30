@@ -2,7 +2,7 @@
 
 使用了循环神经网络（GRU）和position embedding生成古诗。输入第一个汉字，生成剩余诗句，并且在生成过程中依概率在top5中选字。
 
-##基本框架
+## 基本框架
 
 将古诗生成看成一个auto-regressive过程，下一个字的生成只与前面的字有关。将古诗看成plain character sequence，并使用position embedding来标志在句子中的位置。
 
