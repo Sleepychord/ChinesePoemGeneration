@@ -11,7 +11,7 @@ import argparse
 import sys
 import os
 from preprocess import pos2PE
-
+torch.manual_seed(0)
 
 def sequence_collate(batch):
     transposed = zip(*batch)
@@ -20,12 +20,12 @@ def sequence_collate(batch):
     return ret
 
 
-def prob_sample(w_list):
+def prob_sample(w_list, topn = 10):
     samples = []
     for weights in w_list:
         idx = np.argsort(weights)[::-1]
-        t = np.cumsum(weights[idx[:5]])
-        s = np.sum(weights[idx[:5]])
+        t = np.cumsum(weights[idx[:topn]])
+        s = np.sum(weights[idx[:topn]])
         sample = int(np.searchsorted(t, np.random.rand(1) * s))
         samples.append(idx[sample])
     return np.array(samples)
@@ -34,15 +34,15 @@ def prob_sample(w_list):
 def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1):
     dim_PE = 100
     PE_const = 1000
-
+    device = torch.device('cpu') if isinstance(final.weight, torch.FloatTensor) else final.weight.get_device()
     h = torch.zeros((1, n, hidden_size))
     x = torch.nn.functional.embedding(torch.full((n,), word2int[start], dtype=torch.long), emb).unsqueeze(0)
     ret = [[start] for i in range(n)]
     for i in range(19):
         # add PE dims
         pe = torch.tensor(pos2PE((i % 5) + 1), dtype=torch.float).repeat(1, n, 1)
-        if torch.cuda.is_available():
-            x, h, pe = x.cuda(), h.cuda(), pe.cuda()
+        
+        x, h, pe = x.to(device), h.to(device), pe.to(device)
         x = torch.cat((x, pe), dim=2)
         x, h = model(x, h)
         # h = torch.rand((1, n, hidden_size))
@@ -65,7 +65,7 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
     return ret_list
 
 
-def main(epoch=10, batch_size=4, hidden_size=256, save_dir):
+def main(epoch=10, batch_size=4, hidden_size=256, save_dir='./model'):
     dataset, words, word2int = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=sequence_collate)
     model = torch.nn.GRU(input_size=dataset.emb_dim, hidden_size=hidden_size)
@@ -98,7 +98,7 @@ def main(epoch=10, batch_size=4, hidden_size=256, save_dir):
                     "epoch": epoch,
                     "iter": i,
                     "loss": loss.item(),
-                    "example": infer(model, final, words, word2int, dataset.emb)
+                    "example": infer(model, final, words, word2int, dataset.emb, hidden_size = hidden_size)
                 }
                 if sys.version_info.major == 2:
                     data_iter.write(unicode(post_fix))
@@ -106,16 +106,20 @@ def main(epoch=10, batch_size=4, hidden_size=256, save_dir):
                     data_iter.write(str(post_fix))
         # break
 
-        tmp_infer_rst = infer(model, final, words, word2int, dataset.emb, n=5)
+        tmp_infer_rst = infer(model, final, words, word2int, dataset.emb, hidden_size = hidden_size, n=5)
         if sys.version_info.major == 2:
             tmp_infer_rst = u"\n".join(tmp_infer_rst).encode('utf-8')
         else:
             tmp_infer_rst = "\n".join(tmp_infer_rst)
         print(tmp_infer_rst)
-        
+    
+    print('Saving...')
     torch.save({
-        'model': model.state_dict(),
-        'final': final.state_dict()
+        'model': model.cpu(),
+        'final': final.cpu(),
+        'words': words,
+        'word2int': word2int,
+        'emb': dataset.emb
     }, os.path.join(save_dir, 'current.pth'))
     
 
