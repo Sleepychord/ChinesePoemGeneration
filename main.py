@@ -9,7 +9,7 @@ import tqdm
 import numpy as np
 import argparse
 import sys
-
+import os
 from preprocess import pos2PE
 
 
@@ -65,7 +65,7 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
     return ret_list
 
 
-def main(epoch=10, batch_size=4, hidden_size=256):
+def main(epoch=10, batch_size=4, hidden_size=256, save_dir):
     dataset, words, word2int = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
     loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=sequence_collate)
     model = torch.nn.GRU(input_size=dataset.emb_dim, hidden_size=hidden_size)
@@ -112,14 +112,20 @@ def main(epoch=10, batch_size=4, hidden_size=256):
         else:
             tmp_infer_rst = "\n".join(tmp_infer_rst)
         print(tmp_infer_rst)
-
+        
+    torch.save({
+        'model': model.state_dict(),
+        'final': final.state_dict()
+    }, os.path.join(save_dir, 'current.pth'))
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-e", "--epoch", type=int, default=10, help="number of epochs")
     parser.add_argument("-b", "--batch_size", type=int, default=4, help="number of batch_size")
     parser.add_argument("-hs", "--hidden_size", type=int, default=256, help="hidden size of RNN")
+    parser.add_argument('-d', "--save_dir", type = str, default = './model', help='directory to save files in')
     args = parser.parse_args()
     print(args)
 
-    main(epoch=args.epoch, batch_size=args.batch_size, hidden_size=args.hidden_size)
+    main(epoch=args.epoch, batch_size=args.batch_size, hidden_size=args.hidden_size, save_dir = args.save_dir)
