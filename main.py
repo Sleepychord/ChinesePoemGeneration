@@ -36,8 +36,8 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
     PE_const = 1000
     device = torch.device('cpu') if isinstance(final.weight, torch.FloatTensor) else final.weight.get_device()
     h = torch.zeros((1, n, hidden_size))
-    x = torch.nn.functional.embedding(torch.full((n,), word2int[start], dtype=torch.long), emb).unsqueeze(0)
-    ret = [[start] for i in range(n)]
+    x = torch.nn.functional.embedding(torch.full((n,), word2int[start[0]], dtype=torch.long), emb).unsqueeze(0)
+    ret = [[start[0]] for i in range(n)]
     for i in range(19):
         # add PE dims
         pe = torch.tensor(pos2PE((i % 5) + 1), dtype=torch.float).repeat(1, n, 1)
@@ -45,9 +45,10 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
         x, h, pe = x.to(device), h.to(device), pe.to(device)
         x = torch.cat((x, pe), dim=2)
         x, h = model(x, h)
-        # h = torch.rand((1, n, hidden_size))
-        w = prob_sample(torch.nn.functional.softmax(final(x.view(-1, hidden_size)), dim=-1).data.cpu().numpy())
-        # w = torch.argmax(, dim = 1).cpu()
+        if i % 5 == 4 and i // 5 + 1 < len(start):
+            w = np.array([word2int[start[i // 5 + 1]] for _ in range(n)])
+        else:
+            w = prob_sample(torch.nn.functional.softmax(final(x.view(-1, hidden_size)), dim=-1).data.cpu().numpy())
         x = torch.nn.functional.embedding(torch.from_numpy(w), emb).unsqueeze(0)
         for j in range(len(w)):
             ret[j].append(words[w[j]])

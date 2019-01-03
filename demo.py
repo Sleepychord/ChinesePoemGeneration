@@ -17,7 +17,6 @@ torch.random.manual_seed(0)
 random.seed(0)
 if __name__ == "__main__":
     checkpoint = torch.load('./model/production.pth')
-    hidden_size = 128
     model, final, words, word2int, emb = checkpoint['model'], checkpoint['final'], checkpoint['words'], checkpoint['word2int'], checkpoint['emb']
     print('Finish Loading')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
