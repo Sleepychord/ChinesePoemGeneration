@@ -61,7 +61,13 @@ def evaluate(poems):
     return poems[np.argmax(scores)]
 
 if __name__ == "__main__":
-    checkpoint = torch.load('./model/production.pth')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', "--dir", type = str, default = './model', help='file directory')
+    parser.add_argument('-n', "--name", type=str, default='production.pth', help='file name')
+    args = parser.parse_args()
+    print(args)
+
+    checkpoint = torch.load(os.path.join(args.dir, args.name))
     model, final, words, word2int, emb = checkpoint['model'], checkpoint['final'], checkpoint['words'], checkpoint['word2int'], checkpoint['emb']
     print('Finish Loading')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -73,7 +79,7 @@ if __name__ == "__main__":
         try:
             if len(start) == 0:
                 start = start_words[prob_sample(start_freq)]
-            poems = infer(model, final, words, word2int, emb, hidden_size = model.hidden_size, start=start, n = 20)
+            poems = infer(model, final, words, word2int, emb, hidden_size = model.hidden_size, start=start, n = 20, num = 5 if random.random() < 0.5 else 7)
             print(evaluate(poems))
         except KeyError:
             print(u'此字在语料库中未出现过，请更换首字')
