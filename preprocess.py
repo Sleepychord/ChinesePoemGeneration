@@ -10,7 +10,10 @@ from collections import defaultdict
 import re
 from PoemDataset import PoemDataset
 import torch
+import random
 
+torch.random.manual_seed(0)
+random.seed(0)
 start_token = u'B'
 end_token = u'E'
 invalid_chr = [u'_', u'(', u'（', u'《', u'[', start_token, end_token]
@@ -95,7 +98,7 @@ def process_poems(file_name, embedding_file_name):
 
 
 if __name__ == "__main__":
-    dataset, emb, words, _ = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
+    dataset, emb, words = process_poems('./data/poems.txt', './data/sgns.sikuquanshu.word')
     import pdb;
 
     pdb.set_trace()
