@@ -55,9 +55,9 @@ def infer(model, final, words, word2int, emb, hidden_size=256, start=u'春', n=1
             ret[j].append(words[w[j]])
             if i % num == num - 2:
                 if sys.version_info.major == 2:
-                    ret[j].append(u"，" if i < num * 4 - 2 else u"。")
+                    ret[j].append(u"，" if i // num % 2 == 0 else u"。")
                 else:
-                    ret[j].append("，" if i < num * 4 - 2 else "。")
+                    ret[j].append("，" if i // num % 2 == 0 else "。")
     ret_list = []
     for i in range(n):
         if sys.version_info.major == 2:
